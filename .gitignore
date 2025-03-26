@@ -4,3 +4,4 @@ mpk_indexed.csv
 exploring.ipynb
 preprocesing.ipynb
 test.ipynb
+*.pickle
