@@ -1,4 +1,4 @@
-from data_structures import BusStop, Connection
+from src.data_structures import BusStop, Connection
 import math
 
 def extract_first_connection(graph: dict[str, BusStop], stop_name: str):

@@ -6,3 +6,4 @@ preprocesing.ipynb
 test.ipynb
 *.pickle
 __pycache__/
+results/

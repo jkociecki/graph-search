@@ -1,11 +1,11 @@
-from data_structures import *
+from src.data_structures import *
 import heapq
 from datetime import timedelta
 import heapq
 from datetime import datetime
 from typing import Callable, List, Dict, Optional, Tuple
 import math
-from utlis import euclidean_distance, haversine_distance
+from src.utlis import euclidean_distance, haversine_distance
 import heapq
 from datetime import datetime, timedelta
 from typing import Dict, Callable
@@ -21,7 +21,7 @@ class RoutePlaner:
         connections: List[Connection], 
         current_time: datetime, 
         previous_line: Optional[str] = None, 
-        transfer_time: int = 2, 
+        transfer_time: int = 1, 
         criteria: str = "earliest"
     ) -> Optional['Connection']:
         
@@ -48,8 +48,9 @@ class RoutePlaner:
             return same_line_connections[0] if same_line_connections else valid_connections[0]
         
         return valid_connections[0]
+    
 
-    def dijkstra(self, start_stop: str, end_stop: str, departure_time: str, transfer_time: int = 2):
+    def dijkstra(self, start_stop: str, end_stop: str, departure_time: str, transfer_time: int = 1):
         if start_stop not in self.graph or end_stop not in self.graph:
             return None, []
 
@@ -201,7 +202,7 @@ class RoutePlaner:
                     heapq.heappush(priority_queue, (distances[next_stop] + next_h_score, next_stop))
 
         if distances[end_stop] == float('inf') or previous[end_stop] is None:
-            return None, []
+            return None, [], visited_nodes, visited_connections
 
         route = []
         current_stop = end_stop
@@ -223,9 +224,11 @@ class RoutePlaner:
             return datetime.strptime(f'2025-01-02 {hour:02}{time_str[2:]}', datetime_format)
         else:
             return datetime.strptime(f'2025-01-01 {time_str}', datetime_format)
+        
 
     def zero_heuristic(self, next_stop: str, target_stop: str, change=None, current_stop=None) -> float:
         return 0
+    
 
     def extract_first_connection(self, stop_name: str):
         try:
@@ -241,7 +244,7 @@ class RoutePlaner:
     def euclidean_distance_heuristic(self, next_stop: str, target_stop: str, current_stop=None, change=None) -> float:
             first_next_conn = self.extract_first_connection(next_stop)
             first_target_conn = self.extract_first_connection(target_stop)
-            
+
             if first_next_conn is None or first_target_conn is None:
                 return 0
             
@@ -251,7 +254,7 @@ class RoutePlaner:
             )
             
             travel_time_estimate = dist * 111 / 0.4
-            return travel_time_estimate * 0.2
+            return travel_time_estimate * 0.8
 
 
 
@@ -262,7 +265,7 @@ class RoutePlaner:
         if first_next_conn is None or first_target_conn is None:
             return 0
         
-        dist = self.euclidean_distance(
+        dist = euclidean_distance(
             first_next_conn.start_latitude, first_target_conn.start_latitude,
             first_next_conn.start_longitude, first_target_conn.start_longitude
         )
@@ -323,3 +326,100 @@ class RoutePlaner:
         transfer_penalty = 0 if change else 15
 
         return base_distance + transfer_penalty
+        
+    def astar_changes(
+        self, 
+        start_stop: str, 
+        end_stop: str, 
+        departure_time: str, 
+        transfer_time: int = 1,
+        ):
+        start_time = self.convert_time(departure_time)
+
+        if start_stop not in self.graph or end_stop not in self.graph:
+            return None, [], 0, 0
+
+        distances = {stop: float('inf') for stop in self.graph}
+        arrival_times = {stop: None for stop in self.graph}
+        previous = {stop: None for stop in self.graph}
+        previous_lines = {stop: None for stop in self.graph}
+        transfer_counts = {stop: 0 for stop in self.graph}
+
+        distances[start_stop] = 0
+        arrival_times[start_stop] = start_time   
+
+        priority_queue = [(self.haversine_distance_heuristic(start_stop, end_stop), 0, 0, start_stop)]
+        visited_nodes = 0
+        visited_connections = 0
+        closed_set = set()
+        
+        while priority_queue:
+            _, current_g_score, current_transfer_count, current_stop = heapq.heappop(priority_queue)
+            
+            if current_stop == end_stop:
+                break
+            
+            if current_stop in closed_set:
+                continue
+            
+            closed_set.add(current_stop)
+            visited_nodes += 1
+            
+            current_time = arrival_times[current_stop]
+            current_line = previous_lines[current_stop]
+            
+            for next_stop, connections in self.graph[current_stop].connections.items():
+                if next_stop in closed_set:
+                    continue
+                
+                visited_connections += 1
+                
+                earliest_conn = self.find_earliest_connection(
+                    connections, 
+                    current_time, 
+                    previous_line=current_line, 
+                    transfer_time=transfer_time,
+                    criteria="earliest"
+                )
+                
+                if earliest_conn is None:
+                    continue
+                
+                travel_time = (earliest_conn.arrival_time - current_time).total_seconds() / 60
+                
+                change = False
+                new_transfer_count = current_transfer_count
+                if current_line and current_line != earliest_conn.line:
+                    change = True
+                    new_transfer_count += 1
+                
+                new_g_score = current_g_score + travel_time + (100 if change else 0)
+                
+                heuristic_cost = self.haversine_distance_heuristic(next_stop, end_stop, current_stop, change)
+                
+                
+                f_cost = new_g_score + heuristic_cost
+                
+                if new_g_score < distances[next_stop]:
+                    distances[next_stop] = new_g_score
+                    previous[next_stop] = (current_stop, earliest_conn)
+                    arrival_times[next_stop] = earliest_conn.arrival_time
+                    previous_lines[next_stop] = earliest_conn.line
+                    transfer_counts[next_stop] = new_transfer_count
+                    
+                    heapq.heappush(priority_queue, (f_cost, new_g_score, new_transfer_count, next_stop))
+        
+        if distances[end_stop] == float('inf'):
+            return None, [], visited_nodes, visited_connections
+        
+        route = []
+        current_stop = end_stop
+        while current_stop and previous[current_stop]:
+            prev_stop, conn = previous[current_stop]
+            route.append(conn)
+            current_stop = prev_stop
+        route.reverse()
+        
+        total_time = distances[end_stop] if distances[end_stop] != float('inf') else None
+        
+        return total_time, route, visited_nodes, visited_connections

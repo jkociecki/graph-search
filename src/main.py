@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from data_structures import *
-from shortest_path import * 
+from src.data_structures import *
+from src.shortest_path import * 
 import requests
 import pickle
 

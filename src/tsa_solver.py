@@ -1,7 +1,7 @@
-from shortest_path import *
+from src.shortest_path import *
 from math import ceil
 from datetime import datetime, timedelta
-from utlis import euclidean_distance, extract_first_connection
+from src.utlis import euclidean_distance, extract_first_connection
 
 
 def extract_first_connection(self, stop_name: str):
