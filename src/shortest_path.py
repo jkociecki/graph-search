@@ -128,7 +128,7 @@ class RoutePlaner:
         end_stop: str, 
         departure_time: str, 
         heuristic_function: Callable[[str, str, Dict[str, BusStop]], float],
-        transfer_time: int = 2,
+        transfer_time: int = 1,
         connection_finder_type: str = "earliest"
     ):
         if start_stop not in self.graph:
@@ -148,7 +148,7 @@ class RoutePlaner:
         arrival_times[start_stop] = start_time
 
         priority_queue = [(0 + heuristic_function(start_stop, end_stop), start_stop)]
-
+        discovered = set()
         visited_nodes = 0
         visited_connections = 0
 
@@ -161,15 +161,16 @@ class RoutePlaner:
             current_h_score = heuristic_function(current_stop, end_stop)
             current_g_score = current_f_score - current_h_score
             
-            if current_g_score > distances[current_stop]:
+            if current_g_score > distances[current_stop] or current_stop in discovered:
                 continue
 
             visited_nodes += 1
-
+            discovered.add(current_stop)
             current_time = arrival_times[current_stop]
             current_line = previous_lines[current_stop]
 
             for next_stop, connections in self.graph[current_stop].connections.items():
+
                 visited_connections += 1
 
                 earliest_conn = self.find_earliest_connection(
@@ -180,8 +181,9 @@ class RoutePlaner:
                     criteria=connection_finder_type
                 )
 
-                if earliest_conn is None:
+                if earliest_conn is None or next_stop in discovered:
                     continue
+
 
                 travel_time = (earliest_conn.arrival_time - current_time).total_seconds() / 60
 
