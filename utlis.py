@@ -11,5 +11,5 @@ def extract_first_connection(graph: dict[str, BusStop], stop_name: str):
     return None
 
 
-def euclidean_distance(self, x1, x2, y1, y2):
+def euclidean_distance(x1, x2, y1, y2):
     return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)

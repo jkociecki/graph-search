@@ -5,7 +5,7 @@ import heapq
 from datetime import datetime
 from typing import Callable, List, Dict, Optional, Tuple
 import math
-
+from utlis import euclidean_distance
 import heapq
 from datetime import datetime, timedelta
 from typing import Dict, Callable
@@ -103,7 +103,6 @@ class RoutePlaner:
         return total_time, route
 
     def print_path(self, total_time, route):
-        print(f"Czas przejazdu: {total_time} min")
         for conn in route:
             print(f"{conn.line} {conn.departure_time.strftime('%H:%M:%S')} -> {conn.arrival_time.strftime('%H:%M:%S')} {conn.end_stop}")
 
@@ -120,6 +119,7 @@ class RoutePlaner:
         if end_stop not in self.graph:
             return None, []
 
+        
         start_time = self.convert_time(departure_time)
 
         distances = {stop: float('inf') for stop in self.graph}
@@ -130,7 +130,7 @@ class RoutePlaner:
         distances[start_stop] = 0
         arrival_times[start_stop] = start_time
 
-        priority_queue = [(0 + heuristic_function(start_stop, end_stop, self.graph), start_stop)]
+        priority_queue = [(0 + heuristic_function(start_stop, end_stop), start_stop)]
 
         visited_nodes = 0
         visited_connections = 0
@@ -141,7 +141,7 @@ class RoutePlaner:
             if current_stop == end_stop:
                 break
 
-            current_h_score = heuristic_function(current_stop, end_stop, self.graph)
+            current_h_score = heuristic_function(current_stop, end_stop)
             current_g_score = current_f_score - current_h_score
             
             if current_g_score > distances[current_stop]:
@@ -177,14 +177,13 @@ class RoutePlaner:
                     arrival_times[next_stop] = earliest_conn.arrival_time
                     previous_lines[next_stop] = earliest_conn.line
 
-                    next_h_score = heuristic_function(next_stop, end_stop, self.graph, 
+                    next_h_score = heuristic_function(next_stop, end_stop, 
                                                     current_stop=current_stop,
                                                     change=change
                                                     )
                     heapq.heappush(priority_queue, (distances[next_stop] + next_h_score, next_stop))
 
         if distances[end_stop] == float('inf') or previous[end_stop] is None:
-            print("Nie znaleziono trasy.")
             return None, []
 
         route = []
@@ -197,18 +196,18 @@ class RoutePlaner:
         route.reverse()
 
         total_time = distances[end_stop] if distances[end_stop] != float('inf') else None
-        return total_time, route
+        return total_time, route, visited_nodes, visited_connections
+    
 
     def convert_time(self, time_str: str) -> datetime:
-        today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
-        time_parts = list(map(int, time_str.split(':')))
-        
-        if len(time_parts) == 2:
-            time_parts.append(0)
-            
-        return today.replace(hour=time_parts[0], minute=time_parts[1], second=time_parts[2])
+        hour = int(time_str[:2])
+        if hour >= 24:
+            hour -= 24
+            return datetime.strptime(f'2025-01-02 {hour:02}{time_str[2:]}', datetime_format)
+        else:
+            return datetime.strptime(f'2025-01-01 {time_str}', datetime_format)
 
-    def zero_heuristic(self, next_stop: str, target_stop: str, change=None) -> float:
+    def zero_heuristic(self, next_stop: str, target_stop: str, change=None, current_stop=None) -> float:
         return 0
 
     def extract_first_connection(self, stop_name: str):
@@ -221,24 +220,23 @@ class RoutePlaner:
         return None
 
 
+
     def euclidean_distance_heuristic(self, next_stop: str, target_stop: str, current_stop=None, change=None) -> float:
-        first_next_conn = self.extract_first_connection(next_stop)
-        first_target_conn = self.extract_first_connection(target_stop)
-        
-        if first_next_conn is None or first_target_conn is None:
-            return 0
-        
-        dist = self.euclidean_distance(
-            first_next_conn.start_latitude, first_target_conn.start_latitude,
-            first_next_conn.start_longitude, first_target_conn.start_longitude
-        )
-        
-        # Konwersja do minut podróży
-        # 1 stopień szerokości/długości geograficznej to około 111 km
-        # średnia prędkość 30 km/h -> 0.5 km/min
-        travel_time_estimate = dist * 111 / 0.4
-        
-        return travel_time_estimate * 0.2
+            first_next_conn = self.extract_first_connection(next_stop)
+            first_target_conn = self.extract_first_connection(target_stop)
+            
+            if first_next_conn is None or first_target_conn is None:
+                return 0
+            
+            dist = euclidean_distance(
+                first_next_conn.start_latitude, first_target_conn.start_latitude,
+                first_next_conn.start_longitude, first_target_conn.start_longitude
+            )
+            
+            travel_time_estimate = dist * 111 / 0.4
+            return travel_time_estimate * 0.2
+
+
 
     def euclidean_distance_heuristic_2(self, next_stop: str, target_stop: str, current_stop=None, change=None) -> float:
         first_next_conn = self.extract_first_connection(next_stop)
@@ -263,26 +261,28 @@ class RoutePlaner:
             return 0
 
 
-    @staticmethod
     def angle_between_heuristic(self, next_stop: str, target_stop: str, current_stop=None, change=None) -> float:
         try:
+            if not change:
+                return 0
+
             first_next_conn = self.extract_first_connection(next_stop)
             first_target_conn = self.extract_first_connection(target_stop)
             first_current_conn = self.extract_first_connection(current_stop)
 
-            curr_target_dist = self.euclidean_distance(first_current_conn.start_latitude, first_target_conn.start_latitude,
+            curr_target_dist = euclidean_distance(first_current_conn.start_latitude, first_target_conn.start_latitude,
                                                 first_current_conn.start_longitude, first_target_conn.start_longitude)
             
-            curr_next_dist = self.euclidean_distance(first_current_conn.start_latitude, first_next_conn.start_latitude,
+            curr_next_dist = euclidean_distance(first_current_conn.start_latitude, first_next_conn.start_latitude,
                                                 first_current_conn.start_longitude, first_next_conn.start_longitude)
             
-            next_target_dist = self.euclidean_distance(first_target_conn.start_latitude, first_next_conn.start_latitude,
+            next_target_dist = euclidean_distance(first_target_conn.start_latitude, first_next_conn.start_latitude,
                                                 first_target_conn.start_longitude, first_next_conn.start_longitude)
             
             cos = (next_target_dist**2 - curr_target_dist**2 - curr_next_dist**2) / (-2.0 * curr_target_dist * curr_next_dist)
 
-            if change and cos < 0.5:
+            if cos < 0.5:
                 return (2.5 - cos)
             return 0    
-        except:
+        except Exception as e:
             return 0

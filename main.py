@@ -31,8 +31,6 @@ def get_suggestions():
         return jsonify([])
     
     get_suggestions = [name for name in bus_stop_names if query in name.lower()]
-
-    print(get_suggestions)
     return jsonify(get_suggestions)
 
 
@@ -47,7 +45,7 @@ def get_shortest_path():
     if source not in graph or target not in graph or time is None or source == target:
         return jsonify({"error": "Nie znaleziono przystanku"}), 404  
 
-    total_time, route = wroclaw_route_planer.astar(
+    total_time, route, _, _ = wroclaw_route_planer.astar(
         start_stop=source,
         end_stop=target,
         departure_time=time,
@@ -58,6 +56,7 @@ def get_shortest_path():
     for x in route:
         connections.append(x.toDict())
 
+    print(route)
     return jsonify({
         "total_time": total_time,
         "route": connections
