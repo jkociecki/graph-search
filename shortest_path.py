@@ -5,32 +5,49 @@ import heapq
 from datetime import datetime
 from typing import Callable, List, Dict, Optional, Tuple
 import math
-from utlis import euclidean_distance
+from utlis import euclidean_distance, haversine_distance
 import heapq
 from datetime import datetime, timedelta
 from typing import Dict, Callable
 import math
 
 class RoutePlaner:
+
     def __init__(self, graph: dict[str, BusStop]):
         self.graph = graph
 
-    def find_earliest_connection(self, connections: list[Connection], 
-                                 current_time: datetime, previous_line=None, transfer_time=2
-                                 ) -> Connection:
-        earliest = None
-        earliest_departure = None
+    def find_earliest_connection(
+        self,
+        connections: List[Connection], 
+        current_time: datetime, 
+        previous_line: Optional[str] = None, 
+        transfer_time: int = 2, 
+        criteria: str = "earliest"
+    ) -> Optional['Connection']:
         
-        for conn in connections:
-            required_time = current_time
-            if previous_line is not None and conn.line != previous_line:
-                required_time = current_time + timedelta(minutes=transfer_time)
-            
-            if conn.departure_time >= required_time and (earliest is None or conn.departure_time < earliest_departure):
-                earliest = conn
-                earliest_departure = conn.departure_time
+        def is_valid_connection(connection):
+            required_time = (
+                current_time + timedelta(minutes=transfer_time) 
+                if previous_line and connection.line != previous_line 
+                else current_time
+            )
+            return connection.departure_time >= required_time
+
+        valid_connections = [conn for conn in connections if is_valid_connection(conn)]
         
-        return earliest
+        if not valid_connections:
+            return None
+
+        valid_connections.sort(key=lambda x: x.departure_time)
+
+        if criteria == "no_change":
+            same_line_connections = [
+                conn for conn in valid_connections 
+                if previous_line == conn.line
+            ]
+            return same_line_connections[0] if same_line_connections else valid_connections[0]
+        
+        return valid_connections[0]
 
     def dijkstra(self, start_stop: str, end_stop: str, departure_time: str, transfer_time: int = 2):
         if start_stop not in self.graph or end_stop not in self.graph:
@@ -88,8 +105,6 @@ class RoutePlaner:
 
                     heapq.heappush(priority_queue, (distances[next_stop], next_stop))
 
-        print(f"Odwiedzone węzły: {visited_nodes}, odwiedzone krawędzie: {visited_connections}")
-
         route = []
         current_stop = end_stop
         while current_stop and previous[current_stop]:
@@ -112,7 +127,8 @@ class RoutePlaner:
         end_stop: str, 
         departure_time: str, 
         heuristic_function: Callable[[str, str, Dict[str, BusStop]], float],
-        transfer_time: int = 2
+        transfer_time: int = 2,
+        connection_finder_type: str = "earliest"
     ):
         if start_stop not in self.graph:
             return None, []
@@ -156,10 +172,11 @@ class RoutePlaner:
                 visited_connections += 1
 
                 earliest_conn = self.find_earliest_connection(
-                    connections, 
-                    current_time, 
+                    connections=connections, 
+                    current_time=current_time, 
                     previous_line=current_line, 
-                    transfer_time=transfer_time
+                    transfer_time=transfer_time,
+                    criteria=connection_finder_type
                 )
 
                 if earliest_conn is None:
@@ -286,3 +303,23 @@ class RoutePlaner:
             return 0    
         except Exception as e:
             return 0
+        
+    def haversine_distance_heuristic(
+        self,
+        next_stop: str, 
+        target_stop: str, 
+        current_stop: str = None, 
+        change: bool = False
+        ) -> float:
+
+        first_next_conn = self.extract_first_connection(next_stop)
+        first_target_conn = self.extract_first_connection(target_stop)
+
+        base_distance = haversine_distance(
+            first_next_conn.start_latitude, first_next_conn.start_longitude,
+            first_target_conn.start_latitude, first_target_conn.start_longitude
+        ) 
+
+        transfer_penalty = 0 if change else 15
+
+        return base_distance + transfer_penalty
