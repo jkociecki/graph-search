@@ -42,29 +42,57 @@ def get_shortest_path():
     source = data.get('source')  
     target = data.get('target')  
     time = data.get('time')  
+    num_routes = data.get('num_routes', 5)  # Domyślnie 5 tras
+    print(source, target, time, num_routes)
 
     print(source, target, time)
 
     if source not in graph or target not in graph or time is None or source == target:
         return jsonify({"error": "Nie znaleziono przystanku"}), 404  
 
-    total_time, route, _, _ = wroclaw_route_planer.astar(
-        start_stop=source,
-        end_stop=target,
-        departure_time=time,
-        heuristic_function=wroclaw_route_planer.angle_between_heuristic 
-    )
-
-    connections = []
-    for x in route:
-        connections.append(x.toDict())
-
-    print(route)
+    all_routes = []
+    current_time = time
+    
+    # Wykonuj wyszukiwanie kilka razy z przesunięciem czasowym
+    for i in range(num_routes):
+        print(f"Searching route {i+1} with time {current_time}")
+        try:
+            total_time, route, _, _ = wroclaw_route_planer.astar(
+                start_stop=source,
+                end_stop=target,
+                departure_time=current_time,
+                heuristic_function=wroclaw_route_planer.angle_between_heuristic 
+            )
+            
+            connections = []
+            for x in route:
+                connections.append(x.toDict())
+            
+            all_routes.append({
+                "total_time": total_time,
+                "route": connections
+            })
+            
+            # Przesuń czas o 10 minut dla kolejnego wyszukiwania
+            # Zakładamy, że czas jest w formacie "HH:MM:SS"
+            h, m, s = map(int, current_time.split(':'))
+            m += 10  # Przesunięcie o 10 minut
+            if m >= 60:
+                h += 1
+                m %= 60
+            if h >= 24:
+                h %= 24
+            current_time = f"{h:02d}:{m:02d}:{s:02d}"
+            
+            print(all_routes)
+        except Exception as e:
+            print(f"Error finding route {i+1}: {e}")
+            # Kontynuuj pętlę mimo błędu
+            continue
+    
     return jsonify({
-        "total_time": total_time,
-        "route": connections
+        "routes": all_routes
     })
-   
 
 if __name__ == "__main__":
     app.run(debug=True)
