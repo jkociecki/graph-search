@@ -2,6 +2,7 @@ from shortest_path import *
 from math import ceil
 from datetime import datetime, timedelta
 from utlis import euclidean_distance, extract_first_connection
+import pickle
 
 
 class TSaSolver:
@@ -53,12 +54,42 @@ class TSaSolver:
             connection_time, route, _, _ = self.route_solver.astar(path[i], 
                                                              path[i+1], 
                                                              current_time.strftime('%H:%M:%S'),
-                                                             self.route_solver.zero_heuristic)
+                                                             self.route_solver.angle_between_heuristic)
             total_time += connection_time
             total_route += route
             current_time += timedelta(minutes=connection_time)
         
         return total_time, total_route
+    
+    def calculate_number_of_changes(self, path):
+        total_changes = 0
+        current_line = None
+
+        for conn in path:
+            if conn.line != current_line:
+                total_changes += 1
+                current_line = conn.line
+
+        return total_changes - 1 if total_changes > 0 else 0
+    
+    def evaluate_solution_based_on_changes(self, path, departure_time):
+        total_changes = 0
+        total_route = []
+        current_time = datetime.strptime(departure_time, '%H:%M:%S')
+
+        for i in range(len(path) - 1):
+            connection_time, route, _, _ = self.route_solver.astar_changes(
+                path[i],
+                path[i+1],
+                current_time.strftime('%H:%M:%S')
+            )
+
+            total_changes += self.calculate_number_of_changes(route)
+            total_route += route
+            current_time += timedelta(minutes=connection_time)
+
+        return total_changes, total_route
+
             
     def generate_neighbourhood(self, path):
         neighborhood = set()
@@ -74,42 +105,97 @@ class TSaSolver:
         
         return [list(sol) for sol in neighborhood]
 
-    def tabu_search(self, start, stops, departure_time):
+
+    def tabu_search(self, start, stops, departure_time, minimize="time", max_iterations=30, inner_iterations=10):
+
         current_solution, _ = self.initial_solution_nn(start, stops)
-        best_solution = current_solution
-        tabu_list = set()
-        best_time, best_route = self.evaluate_solution(best_solution, departure_time)
+        best_solution = current_solution.copy()
         
-        k = 0
-        while k < 30:
-            i = 0
-            while i < 10:
-                neighbourhood = self.generate_neighbourhood(current_solution)
+        tabu_list = {}
+        
+        # Dynamiczny rozmiar tablicy tabu zależny od rozmiaru problemu
+        tabu_size = len(stops) * 2
+        
+        if minimize == "time":
+            best_cost, best_route = self.evaluate_solution(current_solution, departure_time)
+        else:
+            best_cost, best_route = self.evaluate_solution_based_on_changes(current_solution, departure_time)
+        
+        sampling_rate = 1.0
+        
+        for k in range(max_iterations):
+            # Adaptacja strategii próbkowania w zależności od postępu
+            if k > max_iterations // 2:
+                # W drugiej połowie algorytmu intensyfikujemy przeszukiwanie
+                sampling_rate = max(0.3, 1.0 - (k / max_iterations))
+            
+            for i in range(inner_iterations):
+                full_neighbourhood = self.generate_neighbourhood(current_solution)
+                
+                # Adaptacyjne próbkowanie sąsiedztwa
+                import random
+                sample_size = max(1, int(len(full_neighbourhood) * sampling_rate))
+                neighbourhood = random.sample(full_neighbourhood, min(sample_size, len(full_neighbourhood)))
+                
                 best_neighbour = None
-                best_neighbour_time = float('inf')
+                best_neighbour_cost = float('inf')
                 best_neighbour_route = []
-
-                neighbourhood = [neighbour for neighbour in neighbourhood if tuple(neighbour) not in tabu_list]
-
+                
+                # Aktualizacja listy tabu - usuwanie wygasłych zakazów
+                current_iteration = k * inner_iterations + i
+                expired_moves = [move for move, expiry in tabu_list.items() if expiry <= current_iteration]
+                for move in expired_moves:
+                    del tabu_list[move]
+                
+                # Przeszukiwanie sąsiedztwa
                 for neighbour in neighbourhood:
-                    total_time, total_route = self.evaluate_solution(neighbour, departure_time)
-                    if total_time < best_neighbour_time:
-                        best_neighbour_time = total_time
+                    neighbour_tuple = tuple(neighbour)
+                    
+                    is_tabu = neighbour_tuple in tabu_list
+                    
+                    if minimize == "time":
+                        total_cost, total_route = self.evaluate_solution(neighbour, departure_time)
+                    else:
+                        total_cost, total_route = self.evaluate_solution_based_on_changes(neighbour, departure_time)
+                    
+                    # Mechanizm aspiracji - akceptujemy rozwiązanie z tabu, jeśli jest lepsze niż globalnie najlepsze
+                    if is_tabu and total_cost < best_cost:
+                        is_tabu = False
+                    
+                    if not is_tabu and total_cost < best_neighbour_cost:
+                        best_neighbour_cost = total_cost
                         best_neighbour = neighbour
                         best_neighbour_route = total_route
                 
                 if best_neighbour is None:
                     break
                 
-                tabu_list.add(tuple(best_neighbour))
+                tabu_tenure = random.randint(5, 10)
+                tabu_list[tuple(best_neighbour)] = current_iteration + tabu_tenure
                 
-                if best_neighbour_time < best_time:
-                    best_solution = best_neighbour
-                    best_time = best_neighbour_time
-                    best_route = best_neighbour_route
+                if len(tabu_list) > tabu_size:
+                    # Usuń najstarszy zakaz
+                    oldest_move = min(tabu_list, key=tabu_list.get)
+                    del tabu_list[oldest_move]
                 
-                current_solution = best_neighbour
-                i += 1
-            k += 1
+                if best_neighbour_cost < best_cost:
+                    best_solution = best_neighbour.copy()
+                    best_cost = best_neighbour_cost
+                    best_route = best_neighbour_route.copy()
+                    
+                    sampling_rate = min(1.0, sampling_rate + 0.1)
+                else:
+                    sampling_rate = max(0.3, sampling_rate - 0.05)
+                
+                current_solution = best_neighbour.copy()
+            
+            if k % 10 == 9:
+                # Losowo zamieniamy pozycje w bieżącym rozwiązaniu
+                solution_copy = current_solution.copy()
+                indices = list(range(1, len(solution_copy) - 1))
+                if len(indices) >= 2:
+                    idx1, idx2 = random.sample(indices, 2)
+                    solution_copy[idx1], solution_copy[idx2] = solution_copy[idx2], solution_copy[idx1]
+                    current_solution = solution_copy
         
-        return best_solution, best_time, best_route
+        return best_solution, best_cost, best_route

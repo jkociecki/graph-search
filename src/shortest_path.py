@@ -33,6 +33,7 @@ class RoutePlaner:
             )
             return connection.departure_time >= required_time
 
+    
         valid_connections = [conn for conn in connections if is_valid_connection(conn)]
         
         if not valid_connections:
@@ -320,6 +321,9 @@ class RoutePlaner:
         first_next_conn = self.extract_first_connection(next_stop)
         first_target_conn = self.extract_first_connection(target_stop)
 
+        if first_next_conn is None or first_target_conn is None:
+            return 0
+
         base_distance = haversine_distance(
             first_next_conn.start_latitude, first_next_conn.start_longitude,
             first_target_conn.start_latitude, first_target_conn.start_longitude
@@ -336,6 +340,7 @@ class RoutePlaner:
         departure_time: str, 
         transfer_time: int = 1,
         ):
+
         start_time = self.convert_time(departure_time)
 
         if start_stop not in self.graph or end_stop not in self.graph:
@@ -381,7 +386,7 @@ class RoutePlaner:
                     current_time, 
                     previous_line=current_line, 
                     transfer_time=transfer_time,
-                    criteria="earliest"
+                    criteria="change"
                 )
                 
                 if earliest_conn is None:
@@ -410,6 +415,9 @@ class RoutePlaner:
                     transfer_counts[next_stop] = new_transfer_count
                     
                     heapq.heappush(priority_queue, (f_cost, new_g_score, new_transfer_count, next_stop))
+
+                        # Change your priority queue push to this, making transfer count the primary sorting key
+                    #heapq.heappush(priority_queue, (new_transfer_count, f_cost, new_g_score, next_stop))            
         
         if distances[end_stop] == float('inf'):
             return None, [], visited_nodes, visited_connections

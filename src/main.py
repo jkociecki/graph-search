@@ -3,6 +3,7 @@ from flask_cors import CORS
 from data_structures import *
 from shortest_path import * 
 from tsa_solver import *
+from utlis import *
 import requests
 import pickle
 
@@ -57,12 +58,16 @@ def get_shortest_path():
     for i in range(num_routes):
         print(f"Searching route {i+1} with time {current_time}")
         try:
-            total_time, route, _, _ = wroclaw_route_planer.astar(
-                start_stop=source,
-                end_stop=target,
-                departure_time=current_time,
-                heuristic_function=wroclaw_route_planer.angle_between_heuristic 
-            )
+            # total_time, route, _, _ = wroclaw_route_planer.astar(
+            #     start_stop=source,
+            #     end_stop=target,
+            #     departure_time=current_time,
+            #     heuristic_function=wroclaw_route_planer.angle_between_heuristic
+            # )
+
+            total_time, route, _, _ = wroclaw_route_planer.astar_changes(start_stop=source, 
+                                                                          end_stop=target, 
+                                                                          departure_time=current_time)
             
             connections = []
             for x in route:
@@ -94,26 +99,13 @@ def get_shortest_path():
         "routes": all_routes
     })
 
+
+
 if __name__ == "__main__":
+    # route_planer = RoutePlaner(graph)
+    # totaltime, route, visited_nodes, visited_connections = route_planer.astar(start_stop="Zajeznia BOREK", 
+    #                                                                         end_stop="Jagodzińska", 
+    #                                                                         departure_time="11:00:00",
+    #                                                                         heuristic_function=route_planer.angle_between_heuristic)
+    # display_results(route=route, totaltime=totaltime, visited_nodes=visited_nodes, visited_connections=visited_connections)
     app.run(debug=True)
-    # tsa = TSaSolver(graph)
-
-    # start_station = "Stalowa"
-    # #start_station= "KRZYKI"
-    # stations_string = "most Grunwaldzki;Kochanowskiego;Wiśniowa;PL. JANA PAWŁA II"
-    # #stations_string = "GRABISZYŃSKA (Cmentarz);ZOO;Urząd Wojewódzki (Muzeum Narodowe);most Grunwaldzki;Kochanowskiego;Wiśniowa;PL. JANA PAWŁA II"
-    # #stations_string = "GRABISZYŃSKA (Cmentarz);Fiołkowa;FAT;Hutmen;Bzowa (Centrum Historii Zajezdnia)"
-    # #stations_string = "Kliniki - Politechnika Wrocławska;BISKUPIN;Stalowa;Krucza;rondo Św. Ojca Pio;most Grunwaldzki;SĘPOLNO"
-    # stations_string = "Tarczyński Arena (Lotnicza);Niedźwiedzia;Bujwida;PARK POŁUDNIOWY;Na Niskich Łąkach;BISKUPIN"
-
-    # best_solution, best_time, best_route = tsa.tabu_search(
-    #     start=start_station,
-    #     stops=stations_string.split(";"),
-    #     departure_time='11:25:00'
-    # )
-    # print("Best solution:", best_solution)
-    # print("Best time:", best_time)
-    # print("Best route:", best_route)
-    # print("Server is running...")
-
-
