@@ -1,11 +1,11 @@
-from data_structures import *
+from src.data_structures import *
 import heapq
 from datetime import timedelta
 import heapq
 from datetime import datetime
 from typing import Callable, List, Dict, Optional, Tuple
 import math
-from utlis import euclidean_distance, haversine_distance
+from src.utils import euclidean_distance, haversine_distance
 import heapq
 from datetime import datetime, timedelta
 from typing import Dict, Callable
@@ -235,7 +235,7 @@ class RoutePlaner:
 
     def extract_first_connection(self, stop_name: str):
         try:
-            for next_stop, connections in self.graph[stop_name].connections.items():
+            for _, connections in self.graph[stop_name].connections.items():
                 if connections: 
                     return connections[0]
         except (KeyError, IndexError):
@@ -273,9 +273,6 @@ class RoutePlaner:
             first_next_conn.start_longitude, first_target_conn.start_longitude
         )
         
-        # Konwersja do minut podróży
-        # 1 stopień szerokości/długości geograficznej to około 111 km
-        # średnia prędkość 30 km/h -> 0.5 km/min
         travel_time_estimate = dist * 111 / 0.4
         
         if change:
@@ -433,3 +430,201 @@ class RoutePlaner:
         total_time = distances[end_stop] if distances[end_stop] != float('inf') else None
         
         return total_time, route, visited_nodes, visited_connections
+    
+
+    def astar_min_transfers(
+            self, 
+            start_stop: str, 
+            end_stop: str, 
+            departure_time: str, 
+            transfer_time: int = 1,
+            ):
+
+            start_time = self.convert_time(departure_time)
+
+            if start_stop not in self.graph or end_stop not in self.graph:
+                return None, [], 0, 0
+
+
+            distances = {}
+            arrival_times = {}
+            previous = {}
+            transfer_counts = {}
+            
+            distances[(start_stop, None)] = 0
+            arrival_times[(start_stop, None)] = start_time   
+            previous[(start_stop, None)] = None
+            transfer_counts[(start_stop, None)] = 0
+
+
+            entry_count = 0
+            priority_queue = [(0, self.haversine_distance_heuristic(start_stop, end_stop), entry_count, start_stop, None)]
+            visited_nodes = 0
+            visited_connections = 0
+            closed_set = set()  
+            
+            while priority_queue:
+                current_transfer_count, _, _, current_stop, current_line = heapq.heappop(priority_queue)
+                
+                current_key = (current_stop, current_line)
+                
+                if current_stop == end_stop:
+                    break
+                
+                if current_key in closed_set:
+                    continue
+                
+                closed_set.add(current_key)
+                visited_nodes += 1
+                
+                current_time = arrival_times[current_key]
+                
+                for next_stop, connections in self.graph[current_stop].connections.items():
+                    visited_connections += 1
+                    
+                    if current_line:
+                        same_line_connections = self.find_same_line_connections(
+                            connections, 
+                            current_time, 
+                            current_line
+                        )
+                        
+                        if same_line_connections:
+                            earliest_conn = same_line_connections[0]
+                            new_transfer_count = current_transfer_count
+                            
+                            travel_time = (earliest_conn.arrival_time - current_time).total_seconds() / 60
+                            new_key = (next_stop, earliest_conn.line)
+                            
+                            if new_key not in transfer_counts or new_transfer_count < transfer_counts[new_key]:
+                                transfer_counts[new_key] = new_transfer_count
+                                distances[new_key] = distances[current_key] + travel_time
+                                arrival_times[new_key] = earliest_conn.arrival_time
+                                previous[new_key] = (current_key, earliest_conn)
+                                
+                                heuristic = self.haversine_distance_heuristic(next_stop, end_stop)
+                                
+                                if new_key not in closed_set:
+                                    entry_count += 1
+                                    heapq.heappush(priority_queue, (
+                                        new_transfer_count, 
+                                        heuristic,
+                                        entry_count,
+                                        next_stop, 
+                                        earliest_conn.line
+                                    ))
+                    
+                    all_valid_connections = self.find_valid_connections(
+                        connections, 
+                        current_time, 
+                        current_line, 
+                        transfer_time
+                    )
+                    
+                    for conn in all_valid_connections:
+                        is_transfer = current_line and conn.line != current_line
+                        new_transfer_count = current_transfer_count + (1 if is_transfer else 0)
+                        
+                        travel_time = (conn.arrival_time - current_time).total_seconds() / 60
+                        if is_transfer:
+                            travel_time += transfer_time
+                        
+                        new_key = (next_stop, conn.line)
+                        
+                        if new_key not in transfer_counts or new_transfer_count < transfer_counts[new_key]:
+                            transfer_counts[new_key] = new_transfer_count
+                            distances[new_key] = distances[current_key] + travel_time
+                            arrival_times[new_key] = conn.arrival_time
+                            previous[new_key] = (current_key, conn)
+                            
+                            heuristic = self.haversine_distance_heuristic(next_stop, end_stop)
+                            
+                            if new_key not in closed_set:
+                                entry_count += 1
+                                heapq.heappush(priority_queue, (
+                                    new_transfer_count, 
+                                    heuristic,
+                                    entry_count,
+                                    next_stop, 
+                                    conn.line
+                                ))
+            
+            best_path = None
+            min_transfers = float('inf')
+            
+            for key, count in transfer_counts.items():
+                stop, line = key
+                if stop == end_stop and count < min_transfers:
+                    min_transfers = count
+                    best_path = key
+            
+            if best_path is None:
+                return None, [], visited_nodes, visited_connections
+            
+            route = []
+            current_key = best_path
+            
+            while current_key and previous.get(current_key):
+                prev_key, conn = previous[current_key]
+                route.append(conn)
+                current_key = prev_key
+                
+            route.reverse()
+            
+            total_time = distances.get(best_path, float('inf'))
+            if total_time == float('inf'):
+                total_time = None
+            
+            return total_time, route, visited_nodes, visited_connections
+
+    def find_same_line_connections(
+            self,
+            connections: List[Connection], 
+            current_time: datetime, 
+            current_line: str
+        ) -> List[Connection]:
+            """Znajduje wszystkie połączenia tą samą linią i sortuje je według czasu odjazdu."""
+            same_line_connections = [
+                conn for conn in connections 
+                if conn.line == current_line and conn.departure_time >= current_time
+            ]
+            return sorted(same_line_connections, key=lambda x: x.departure_time)
+
+    def find_valid_connections(
+            self,
+            connections: List[Connection], 
+            current_time: datetime, 
+            current_line: Optional[str] = None, 
+            transfer_time: int = 1
+        ) -> List[Connection]:
+            """Znajduje wszystkie ważne połączenia i sortuje je według czasu odjazdu."""
+            valid_connections = []
+            
+            for conn in connections:
+                required_time = current_time
+                
+                if current_line and conn.line != current_line:
+                    required_time += timedelta(minutes=transfer_time)
+                    
+                if conn.departure_time >= required_time:
+                    valid_connections.append(conn)
+                    
+            return sorted(valid_connections, key=lambda x: x.departure_time)
+
+    # def haversine_distance_heuristic(
+    #         self,
+    #         current_stop: str, 
+    #         target_stop: str
+    #     ) -> float:
+    #         first_current_conn = self.extract_first_connection(current_stop)
+    #         first_target_conn = self.extract_first_connection(target_stop)
+
+    #         if first_current_conn is None or first_target_conn is None:
+    #             return 0
+
+    #         distance = haversine_distance(
+    #             first_current_conn.start_latitude, first_current_conn.start_longitude,
+    #             first_target_conn.start_latitude, first_target_conn.start_longitude
+    #         )
+
+    #         return distance
