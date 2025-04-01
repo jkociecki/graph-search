@@ -1,3 +1,12 @@
+
+
+
+
+
+https://github.com/user-attachments/assets/5a46c7ae-da08-4705-b7c5-2eaf87c515e5
+
+
+
 ## **Optimal Public Transport Routing**  
 
 This project focuses on finding optimal routes in a public transportation network using graph-based search algorithms. By leveraging real-world data from Wrocław’s public transit system, it implements and compares different pathfinding strategies to balance travel time and transfer efficiency.  
