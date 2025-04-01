@@ -1,4 +1,4 @@
-from src.data_structures import BusStop, Connection
+from data_structures import BusStop, Connection
 from tabulate import tabulate 
 import math
 import pandas as pd
@@ -98,11 +98,11 @@ def display_results(route, totaltime, visited_nodes, visited_connections, start_
     
     df_route = pd.DataFrame(processed_route, columns=["Linia", "Start", "Koniec", "Przystanek początkowy", "Przystanek końcowy"])
     
-    print(f"Całkowity czas podróży: {totaltime} min")
-    print(f"Odwiedzone węzły: {visited_nodes}")
-    print(f"Odwiedzone połączenia: {visited_connections}")
-    print(f"Początek podróży: {first_stop_name}")
-    print(f"Koniec podróży: {prev_stop}")
+    # print(f"Całkowity czas podróży: {totaltime} min")
+    # print(f"Odwiedzone węzły: {visited_nodes}")
+    # print(f"Odwiedzone połączenia: {visited_connections}")
+    # print(f"Początek podróży: {first_stop_name}")
+    # print(f"Koniec podróży: {prev_stop}")
     print(tabulate(df_route, headers='keys', tablefmt='grid'))
 
 
@@ -124,11 +124,18 @@ def display_route_statistics(best_solution, best_time, best_route):
     print("+------------------------+---------+")
 
 
-
-def display_route_statistics(best_solution, best_distance, best_route):
+def display_route_statistics(best_solution, best_distance, best_route, start_stop_str=None):
+    if not best_route:
+        print("Brak połączeń w trasie")
+        return
+    
     line_groups = []
     current_line = None
     current_group = []
+    
+    # Handle the start stop correctly
+    first_connection = best_route[0]
+    first_stop_name = start_stop_str if start_stop_str else "???"
     
     for conn in best_route:
         if current_line is None or conn.line != current_line:
@@ -145,9 +152,13 @@ def display_route_statistics(best_solution, best_distance, best_route):
     num_transfers = len(line_groups) - 1
     total_stops = len(best_solution)
     
-    total_time_minutes = (best_route[-1].arrival_time - best_route[0].departure_time).total_seconds() / 60
-    hours, minutes = divmod(total_time_minutes, 60)
-    total_time = f"{int(hours)}:{int(minutes):02d}"
+    if len(best_route) > 0:
+        total_time_minutes = (best_route[-1].arrival_time - best_route[0].departure_time).total_seconds() / 60
+        hours, minutes = divmod(total_time_minutes, 60)
+        total_time = f"{int(hours)}:{int(minutes):02d}"
+    else:
+        total_time = "0:00"
+        total_time_minutes = 0
     
     print(f"\nCałkowity czas podróży: {total_time} ({int(total_time_minutes)} min)")
     print(f"Liczba przesiadek: {num_transfers}")
@@ -164,8 +175,15 @@ def display_route_statistics(best_solution, best_distance, best_route):
         line = first_conn.line
         start_time = first_conn.departure_time.strftime("%H:%M:%S")
         end_time = last_conn.arrival_time.strftime("%H:%M:%S")
-        start_stop = first_conn.stop_name if hasattr(first_conn, 'stop_name') else group[0].end_stop
-        end_stop = last_conn.stop_name if hasattr(last_conn, 'stop_name') else group[-1].end_stop
+        
+        # Set the correct start stop name for the first group
+        if i == 0:
+            start_stop = first_stop_name
+        else:
+            # For subsequent groups, use the end stop of the last connection from previous group
+            start_stop = line_groups[i-1][-1].end_stop
+            
+        end_stop = last_conn.end_stop
         
         print(f"| {i:<2} | {line:<7} | {start_time} | {end_time} | {start_stop:<28} | {end_stop:<28} |")
         print("+" + "-"*4 + "+" + "-"*9 + "+" + "-"*10 + "+" + "-"*10 + "+" + "-"*30 + "+" + "-"*30 + "+")

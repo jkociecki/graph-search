@@ -1,11 +1,11 @@
-from src.data_structures import *
+from data_structures import *
 import heapq
 from datetime import timedelta
 import heapq
 from datetime import datetime
 from typing import Callable, List, Dict, Optional, Tuple
 import math
-from src.utils import euclidean_distance, haversine_distance
+from utils import euclidean_distance, haversine_distance
 import heapq
 from datetime import datetime, timedelta
 from typing import Dict, Callable
@@ -412,9 +412,7 @@ class RoutePlaner:
                     transfer_counts[next_stop] = new_transfer_count
                     
                     heapq.heappush(priority_queue, (f_cost, new_g_score, new_transfer_count, next_stop))
-
-                        # Change your priority queue push to this, making transfer count the primary sorting key
-                    #heapq.heappush(priority_queue, (new_transfer_count, f_cost, new_g_score, next_stop))            
+            
         
         if distances[end_stop] == float('inf'):
             return None, [], visited_nodes, visited_connections
@@ -440,6 +438,8 @@ class RoutePlaner:
             transfer_time: int = 1,
             ):
 
+
+
             start_time = self.convert_time(departure_time)
 
             if start_stop not in self.graph or end_stop not in self.graph:
@@ -458,7 +458,7 @@ class RoutePlaner:
 
 
             entry_count = 0
-            priority_queue = [(0, self.haversine_distance_heuristic(start_stop, end_stop), entry_count, start_stop, None)]
+            priority_queue = [(0, self.haversine_heuristic(start_stop, end_stop), entry_count, start_stop, None)]
             visited_nodes = 0
             visited_connections = 0
             closed_set = set()  
@@ -502,7 +502,7 @@ class RoutePlaner:
                                 arrival_times[new_key] = earliest_conn.arrival_time
                                 previous[new_key] = (current_key, earliest_conn)
                                 
-                                heuristic = self.haversine_distance_heuristic(next_stop, end_stop)
+                                heuristic = self.haversine_heuristic(next_stop, end_stop)
                                 
                                 if new_key not in closed_set:
                                     entry_count += 1
@@ -537,7 +537,7 @@ class RoutePlaner:
                             arrival_times[new_key] = conn.arrival_time
                             previous[new_key] = (current_key, conn)
                             
-                            heuristic = self.haversine_distance_heuristic(next_stop, end_stop)
+                            heuristic = self.haversine_heuristic(next_stop, end_stop)
                             
                             if new_key not in closed_set:
                                 entry_count += 1
@@ -576,6 +576,25 @@ class RoutePlaner:
                 total_time = None
             
             return total_time, route, visited_nodes, visited_connections
+    
+
+    def haversine_heuristic(
+        self,
+        current_stop: str, 
+        target_stop: str
+    ) -> float:
+            first_current_conn = self.extract_first_connection(current_stop)
+            first_target_conn = self.extract_first_connection(target_stop)
+
+            if first_current_conn is None or first_target_conn is None:
+                return 0
+
+            distance = haversine_distance(
+                first_current_conn.start_latitude, first_current_conn.start_longitude,
+                first_target_conn.start_latitude, first_target_conn.start_longitude
+            )
+
+            return distance
 
     def find_same_line_connections(
             self,
@@ -610,21 +629,3 @@ class RoutePlaner:
                     valid_connections.append(conn)
                     
             return sorted(valid_connections, key=lambda x: x.departure_time)
-
-    # def haversine_distance_heuristic(
-    #         self,
-    #         current_stop: str, 
-    #         target_stop: str
-    #     ) -> float:
-    #         first_current_conn = self.extract_first_connection(current_stop)
-    #         first_target_conn = self.extract_first_connection(target_stop)
-
-    #         if first_current_conn is None or first_target_conn is None:
-    #             return 0
-
-    #         distance = haversine_distance(
-    #             first_current_conn.start_latitude, first_current_conn.start_longitude,
-    #             first_target_conn.start_latitude, first_target_conn.start_longitude
-    #         )
-
-    #         return distance

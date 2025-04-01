@@ -1,16 +1,16 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from src.data_structures import *
-from src.shortest_path import * 
-from src.tsa_solver import *
-from src.utils import *
+from data_structures import *
+from shortest_path import * 
+from tsa_solver import *
+from utils import *
 import requests
 import pickle
 
 app = Flask(__name__)
 CORS(app)
 
-with open("../mpk_graph.pickle", "rb") as f:
+with open("mpk_graph.pickle", "rb") as f:
     graph = pickle.load(f)
 
 bus_stop_names = graph.keys()
@@ -57,11 +57,10 @@ def get_shortest_path():
     for i in range(num_routes):
         print(f"Searching route {i+1} with time {current_time}")
         try:
-            total_time, route, _, _ = wroclaw_route_planer.astar(
+            total_time, route, _, _ = wroclaw_route_planer.astar_changes(
                 start_stop=source,
                 end_stop=target,
-                departure_time=current_time,
-                heuristic_function=wroclaw_route_planer.angle_between_heuristic
+                departure_time=current_time
             )
 
             connections = []

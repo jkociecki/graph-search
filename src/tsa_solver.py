@@ -1,7 +1,7 @@
-from src.shortest_path import *
+from shortest_path import *
 from math import ceil
 from datetime import datetime, timedelta
-from src.utils import euclidean_distance, extract_first_connection
+from utils import euclidean_distance, extract_first_connection, display_route_statistics
 import pickle
 
 
@@ -54,7 +54,8 @@ class TSaSolver:
             connection_time, route, _, _ = self.route_solver.astar(path[i], 
                                                              path[i+1], 
                                                              current_time.strftime('%H:%M:%S'),
-                                                             self.route_solver.angle_between_heuristic)
+                                                             heuristic_function=self.route_solver.angle_between_heuristic)
+
             total_time += connection_time
             total_route += route
             current_time += timedelta(minutes=connection_time)
@@ -199,3 +200,24 @@ class TSaSolver:
                     current_solution = solution_copy
         
         return best_solution, best_cost, best_route
+    
+
+if __name__ == "__main__":
+    with open("src/mpk_graph.pickle", "rb") as f:
+        graph = pickle.load(f)
+    
+    tsa_solver = TSaSolver(graph)
+
+    start_station = "Stalowa"
+    #start_station= "Jagodzińska"
+    #stations_string = "PL. GRUNWALDZKI;KRZYKI"
+    #stations_string = "most Grunwaldzki;Kochanowskiego;Wiśniowa;PL. JANA PAWŁA II"
+    #stations_string = "GRABISZYŃSKA (Cmentarz);ZOO;Urząd Wojewódzki (Muzeum Narodowe);most Grunwaldzki;Kochanowskiego;Wiśniowa;PL. JANA PAWŁA II"
+    #stations_string = "GRABISZYŃSKA (Cmentarz);Fiołkowa;FAT;Hutmen;Bzowa (Centrum Historii Zajezdnia)"
+    stations_string = "Kliniki - Politechnika Wrocławska;BISKUPIN;Stalowa;Krucza;rondo Św. Ojca Pio;most Grunwaldzki;SĘPOLNO"
+    #stations_string = "Tarczyński Arena (Lotnicza);Niedźwiedzia;Bujwida;PARK POŁUDNIOWY;Na Niskich Łąkach;BISKUPIN"
+
+    best_solution, best_cost, best_route = tsa_solver.tabu_search(start=start_station, 
+                                                                stops=stations_string.split(';'), 
+                                                                departure_time="12:00:00")
+    display_route_statistics(best_solution, best_cost, best_route, start_stop_str=start_station)
