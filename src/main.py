@@ -13,6 +13,7 @@ CORS(app)
 with open("mpk_graph.pickle", "rb") as f:
     graph = pickle.load(f)
 
+
 bus_stop_names = graph.keys()
 wroclaw_route_planer = RoutePlaner(graph) 
 

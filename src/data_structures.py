@@ -2,9 +2,12 @@ from datetime import datetime
 from dataclasses import dataclass
 import pandas as pd
 from datetime import datetime
+datetime_format = '%Y-%m-%d %H:%M:%S'
 
 
 class Connection:
+    """Class to represent a graph edge - connection between two bus stops"""
+
     def __init__(self, line, departure_time, arrival_time, start_latitude, start_longitude, end_latitude, end_longitude, end_stop):
         self.line: str = line
         self.departure_time: datetime = departure_time
@@ -33,6 +36,8 @@ class Connection:
 
 
 class BusStop:
+    """Class to represent a graph node - bus stop"""
+
     def __init__(self, name: str):
         self.name: str = name
         self.connections: dict[str, list[Connection]] = {}
@@ -52,10 +57,10 @@ class BusStop:
             'connections': {k: [x.toDict() for x in v] for k, v in self.connections.items()}
         }
 
-datetime_format = '%Y-%m-%d %H:%M:%S'
-
 
 def convert_time(time: str) -> datetime:
+    """cleaning and converting time to datetime object"""
+
     hour = int(time[:2])
     if hour >= 24:
         hour -= 24
@@ -66,6 +71,8 @@ def convert_time(time: str) -> datetime:
 
 def add_connection(graph: dict[str, BusStop], start_stop: str,
                    end_stop: str, connection: Connection):
+    """adds a connection to a given stop in the graph"""
+    
     if start_stop not in graph:
         graph[start_stop] = BusStop(name=start_stop)
     if end_stop not in graph:
@@ -74,6 +81,8 @@ def add_connection(graph: dict[str, BusStop], start_stop: str,
 
 
 def load_csv_data(filename: str):
+    """loading csv data into a graph"""
+
     df = pd.read_csv(filename)
     graph: dict[str, BusStop] = {}
 

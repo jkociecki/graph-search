@@ -8,3 +8,9 @@ test.ipynb
 __pycache__/
 results/
 jak_dojade.ipynb
+
+
+frontend/src/js/
+frontend/js/scss/
+frontend/css/mdb.min.css
+frontend/css/mdb.min.css.map

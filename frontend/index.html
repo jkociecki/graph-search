@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TransportPro - Optymalizacja Podróży</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Material Design for Bootstrap -->
+    <link href="https://unpkg.com/mdbootstrap/css/mdb.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <link rel="stylesheet" href="css/style.css">
+
+    
+</head>
+<body>
+    <header class="sticky-top">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3">
+            <div class="container">
+                <!-- Logo -->
+                <a class="navbar-brand d-flex align-items-center" href="#">
+                    <i class="fas fa-route text-primary me-2"></i>
+                    <span class="fw-bold">TransportPro</span>
+                </a>
+                
+                <!-- Przycisk hamburger do menu mobilnego -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" 
+                        data-bs-target="#mainNavbar" aria-controls="mainNavbar" 
+                        aria-expanded="false" aria-label="Przełącz nawigację">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                
+                <!-- Elementy menu -->
+                <div class="collapse navbar-collapse" id="mainNavbar">
+                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="#">
+                                <i class="fas fa-home me-1"></i> Strona główna
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#route-form-overlay">
+                                <i class="fas fa-search me-1"></i> Wyszukaj trasę
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#employeeCarousel">
+                                <i class="fas fa-users me-1"></i> Zespół
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#ChartCarousel">
+                                <i class="fas fa-chart-bar me-1"></i> Statystyki
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#collapseOne">
+                                <i class="fas fa-question-circle me-1"></i> FAQ
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" 
+                               role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-ellipsis-h me-1"></i> Więcej
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end animate slideIn" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-info-circle me-2"></i>O nas</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-phone me-2"></i>Kontakt</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-shield-alt me-2"></i>Polityka prywatności</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    
+    <!-- Map Section -->
+    <section class="map-section">
+        <div id="map-container">
+            <div id="googleMapsContainer">
+                <!-- Google Maps będzie tutaj -->
+            </div>
+
+            <div id="route-form-overlay">
+                <div class="card shadow-lg">
+                    <div class="route-form-container">
+                        <h2 class="d-flex align-items-center">
+                            <i class="fas fa-route me-3"></i> Zaplanuj podróż
+                        </h2>
+                    </div>
+
+                    <div class="card-body">
+                        <!-- Prosty widok -->
+                        <div id="simpleView">
+                            <form id="simpleRouteForm">
+                                <div class="mb-3 position-relative">
+                                    <label class="form-label">
+                                        <i class="fas fa-map-marker-alt me-2 text-primary"></i> Skąd
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="start-location-input" placeholder="Wprowadź punkt startowy" autocomplete="off">
+                                    </div>
+                                    <ul id="start-location-list" class="list-group location-list"></ul>
+                                </div>
+
+                                <div class="mb-3 position-relative">
+                                    <label class="form-label">
+                                        <i class="fas fa-map-marker-alt me-2 text-danger"></i> Dokąd
+                                    </label>
+                                    <input type="text" class="form-control" id="target-location-input" placeholder="Wprowadź cel podróży" autocomplete="off">
+                                    <ul id="target-location-list" class="list-group location-list"></ul>
+                                </div>
+
+                                <!-- Ulepszony selektor czasu -->
+                                <div class="cs-form">
+                                    <input type="time" id="time-selector" class="form-control" value="10:05" />
+                                </div>
+                                
+
+                                <div class="mb-3">
+                                    <label class="form-label" style="margin-top: 15px;">
+                                        <i class="fas fa-filter me-2 text-muted"></i> Kryterium wyszukiwania
+                                    </label>
+                                    <div class="btn-group w-100" role="group" id="criteria-toggle">
+                                        <input type="radio" class="btn-check" name="criteria" id="criteria-fast" value="fast" checked>
+                                        <label class="btn btn-outline-primary" for="criteria-fast">Szybkie</label>
+                                        
+                                        <input type="radio" class="btn-check" name="criteria" id="criteria-comfortable" value="comfortable">
+                                        <label class="btn btn-outline-primary" for="criteria-comfortable">Wygodne</label>
+                                    </div>
+                                </div>
+
+                                <button type="submit" id="submit-btn" class="btn btn-primary w-100 btn-lg ripple">
+                                    <i class="material-icons align-middle me-2">Znajdź trasę</i>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Widok wyników -->
+                        <div id="results-view">
+                            <div class="results-header">
+                                <button class="back-button" id="back-to-form">
+                                    <i class="fas fa-arrow-left"></i>
+                                </button>
+                                <h4>Znalezione połączenia</h4>
+                            </div>
+                            <div id="routes-container">
+                                
+                                <!-- Tutaj będą wyświetlane wyniki tras -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Team Section -->
+    <section class="team-section py-5">
+        <div class="container">
+            <h2 class="section-title text-center">Nasz Zespół</h2>
+            <p class="text-center mb-5">Poznaj naszych ekspertów, którzy codziennie pracują nad optymalizacją Twoich podróży</p>
+    
+            <div id="employeeCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+    
+                    <!-- Slajd 1 -->
+                    <div class="carousel-item active">
+                        <div class="row justify-content-center">
+                            <div class="col-md-4">
+                                <div class="team-card card text-center shadow" data-bs-toggle="modal" data-bs-target="#employeeModal" data-name="Jan Kowalski" data-role="Starszy Inżynier" data-image="img/employee1.jpg">
+                                    <img src="img/employee1.jpg" class="card-img-top" alt="Jan Kowalski">
+                                    <div class="card-body">
+                                        <h5 class="card-title fw-bold">Jan Kowalski</h5>
+                                        <p class="card-text text-muted">Starszy Inżynier</p>
+                                    </div>
+                                </div>
+                            </div>
+    
+                            <div class="col-md-4">
+                                <div class="team-card card text-center shadow" data-bs-toggle="modal" data-bs-target="#employeeModal" data-name="Anna Nowak" data-role="Manager Projektu" data-image="img/employee1.jpg">
+                                    <img src="img/employee1.jpg" class="card-img-top" alt="Anna Nowak">
+                                    <div class="card-body">
+                                        <h5 class="card-title fw-bold">Anna Nowak</h5>
+                                        <p class="card-text text-muted">Manager Projektu</p>
+                                    </div>
+                                </div>
+                            </div>
+    
+                            <div class="col-md-4">
+                                <div class="team-card card text-center shadow" data-bs-toggle="modal" data-bs-target="#employeeModal" data-name="Michał Wiśniewski" data-role="Specjalista IT" data-image="img/employee1.jpg">
+                                    <img src="img/employee1.jpg" class="card-img-top" alt="Michał Wiśniewski">
+                                    <div class="card-body">
+                                        <h5 class="card-title fw-bold">Michał Wiśniewski</h5>
+                                        <p class="card-text text-muted">Specjalista IT</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Slajd 2 -->
+                    <div class="carousel-item">
+                        <div class="row justify-content-center">
+                            <div class="col-md-4">
+                                <div class="team-card card text-center shadow" data-bs-toggle="modal" data-bs-target="#employeeModal" data-name="Katarzyna Zielińska" data-role="Grafik" data-image="img/employee1.jpg">
+                                    <img src="img/employee1.jpg" class="card-img-top" alt="Katarzyna Zielińska">
+                                    <div class="card-body">
+                                        <h5 class="card-title fw-bold">Katarzyna Zielińska</h5>
+                                        <p class="card-text text-muted">Grafik</p>
+                                    </div>
+                                </div>
+                            </div>
+    
+                            <div class="col-md-4">
+                                <div class="team-card card text-center shadow" data-bs-toggle="modal" data-bs-target="#employeeModal" data-name="Piotr Kaczmarek" data-role="HR Manager" data-image="img/employee1.jpg">
+                                    <img src="img/employee1.jpg" class="card-img-top" alt="Piotr Kaczmarek">
+                                    <div class="card-body">
+                                        <h5 class="card-title fw-bold">Piotr Kaczmarek</h5>
+                                        <p class="card-text text-muted">HR Manager</p>
+                                    </div>
+                                </div>
+                            </div>
+    
+                            <div class="col-md-4">
+                                <div class="team-card card text-center shadow" data-bs-toggle="modal" data-bs-target="#employeeModal" data-name="Ewa Lewandowska" data-role="Analityk Biznesowy" data-image="img/employee1.jpg">
+                                    <img src="img/employee1.jpg" class="card-img-top" alt="Ewa Lewandowska">
+                                    <div class="card-body">
+                                        <h5 class="card-title fw-bold">Ewa Lewandowska</h5>
+                                        <p class="card-text text-muted">Analityk Biznesowy</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+    
+                </div>
+    
+                <!-- Strzałki do przewijania -->
+                <button class="carousel-control-prev" type="button" data-bs-target="#employeeCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Poprzedni</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#employeeCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Następny</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <div class="modal fade" id="employeeModal" tabindex="-1" aria-labelledby="employeeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header border-bottom-0 pb-0">
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+            </div>
+            <div class="modal-body pt-0">
+              <div class="row">
+                <div class="col-md-5">
+                  <div class="employee-image-container">
+                    <img src="" id="employeeImage" class="img-fluid employee-image" alt="Zdjęcie pracownika">
+                  </div>
+                </div>
+                <div class="col-md-7">
+                  <div class="employee-details">
+                    <h3 class="modal-title fw-bold" id="employeeModalLabel">Imię i Nazwisko</h3>
+                    <p class="text-muted fs-5" id="employeeRole">Stanowisko</p>
+                    <hr>
+                    <p class="employee-description" id="employeeDescription">
+                      Opis pracownika pojawi się tutaj.
+                    </p>
+                    <div class="social-icons mt-3">
+                      <a href="#" class="me-3 text-decoration-none"><i class="bi bi-linkedin fs-5"></i></a>
+                      <a href="#" class="me-3 text-decoration-none"><i class="bi bi-envelope-fill fs-5"></i></a>
+                      <a href="#" class="me-3 text-decoration-none"><i class="bi bi-telephone-fill fs-5"></i></a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <!-- Results Section -->
+    <section class="results-section">
+        <div class="container">
+            <h2 class="section-title">Nasze Wyniki</h2>
+            <p class="text-center mb-5">Sprawdź statystyki i rezultaty naszych rozwiązań transportowych</p>
+        
+            <div id="ChartCarousel" class="carousel slide">
+                <div class="carousel-inner">
+        
+                    <!-- Slajd 1 -->
+                    <div class="carousel-item active">
+                        <div class="row justify-content-center">
+                            <div class="col-md-6">
+                                <div class="card text-center shadow mb-4">
+                                    <div class="card-header bg-primary text-white py-3">
+                                        <h5 class="mb-0">Liczba Przejazdów</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="visitedConnectionsChart" height="250"></canvas>
+                                    </div>
+                                    <div class="card-footer text-muted">
+                                        Ostatnia aktualizacja: Marzec 2025
+                                    </div>
+                                </div>
+                            </div>
+        
+                            <div class="col-md-6">
+                                <div class="card text-center shadow mb-4">
+                                    <div class="card-header bg-primary text-white py-3">
+                                        <h5 class="mb-0">Liczba Przesiadek</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="numberOfTransfersChart" height="250"></canvas>
+                                    </div>
+                                    <div class="card-footer text-muted">
+                                        Ostatnia aktualizacja: Marzec 2025
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+        
+                    <!-- Slajd 2 -->
+                    <div class="carousel-item">
+                        <div class="row justify-content-center">
+                            <div class="col-md-6">
+                                <div class="card text-center shadow mb-4">
+                                    <div class="card-header bg-primary text-white py-3">
+                                        <h5 class="mb-0">Wskaźniki Efektywności</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="radarChart" height="250"></canvas>
+                                    </div>
+                                    <div class="card-footer text-muted">
+                                        Ostatnia aktualizacja: Marzec 2025
+                                    </div>
+                                </div>
+                            </div>
+        
+                            <div class="col-md-6">
+                                <div class="card text-center shadow mb-4">
+                                    <div class="card-header bg-primary text-white py-3">
+                                        <h5 class="mb-0">Porównanie Przewoźników</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="horizontalBarChart" height="250"></canvas>
+                                    </div>
+                                    <div class="card-footer text-muted">
+                                        Ostatnia aktualizacja: Marzec 2025
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="carousel-control-prev" type="button" data-bs-target="#ChartCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Poprzedni</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#ChartCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Następny</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section">
+        <div class="container">
+            <h2 class="section-title">Częste Pytania</h2>
+            <p class="text-center mb-5">Znajdź odpowiedzi na najczęściej zadawane pytania o nasze usługi</p>
+        
+            <div class="faq-accordion">
+                <div class="accordion" id="faqAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingOne">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                <i class="fas fa-question-circle me-2"></i> Jak działa wyszukiwarka połączeń?
+                            </button>
+                        </h2>
+                        <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                <p>Nasza wyszukiwarka połączeń wykorzystuje zaawansowane algorytmy sztucznej inteligencji, które analizują setki możliwych tras i połączeń, aby znaleźć dla Ciebie najbardziej optymalną trasę.</p>
+                                <p>W zależności od wybranego kryterium (szybkie/wygodne), system priorytetyzuje różne aspekty podróży:</p>
+                                <ul>
+                                    <li><strong>Szybkie</strong> - minimalizacja czasu podróży jako priorytet</li>
+                                    <li><strong>Wygodne</strong> - optymalizacja pod kątem komfortu, minimalizacja przesiadek i długich oczekiwań</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingTwo">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                <i class="fas fa-clock me-2"></i> Jak często aktualizowane są dane o połączeniach?
+                            </button>
+                        </h2>
+                        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                <p>Dane o połączeniach są aktualizowane w czasie rzeczywistym. Współpracujemy z przewoźnikami i operatorami transportu publicznego, aby zapewnić najbardziej aktualne informacje.</p>
+                                <p>System uwzględnia:</p>
+                                <ul>
+                                    <li>Bieżące opóźnienia</li>
+                                    <li>Zmiany w rozkładach jazdy</li>
+                                    <li>Remonty i utrudnienia na trasie</li>
+                                    <li>Warunki atmosferyczne wpływające na podróż</li>
+                                </ul>
+                                <p>Dzięki temu możesz planować swoją podróż z większą pewnością i elastycznością.</p>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingThree">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                <i class="fas fa-mobile-alt me-2"></i> Czy dostępna jest aplikacja mobilna?
+                            </button>
+                        </h2>
+                        <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                <p>Tak, nasza aplikacja mobilna jest dostępna zarówno na urządzenia z systemem Android, jak i iOS. Możesz ją pobrać ze sklepu Google Play lub App Store.</p>
+                                <p>Aplikacja oferuje wszystkie funkcjonalności dostępne na stronie internetowej, a dodatkowo:</p>
+                                <ul>
+                                    <li>Powiadomienia push o zmianach w Twojej podróży</li>
+                                    <li>Możliwość korzystania z map offline</li>
+                                    <li>Zapisywanie biletów elektronicznych</li>
+                                    <li>Lokalizację w czasie rzeczywistym</li>
+                                </ul>
+                                <div class="mt-3">
+                                    <a href="#" class="btn btn-outline-primary me-2"><i class="fab fa-google-play me-1"></i> Google Play</a>
+                                    <a href="#" class="btn btn-outline-primary"><i class="fab fa-apple me-1"></i> App Store</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingFour">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                                <i class="fas fa-ticket-alt me-2"></i> Czy mogę kupić bilety poprzez waszą platformę?
+                            </button>
+                        </h2>
+                        <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                <p>Tak, nasza platforma umożliwia zakup biletów na większość połączeń transportu publicznego i przewoźników komercyjnych. Oferujemy bezpieczny system płatności i natychmiastowe potwierdzenie zakupu biletu.</p>
+                                <p>Korzyści z zakupu biletów przez naszą platformę:</p>
+                                <ul>
+                                    <li>Wszystkie bilety w jednym miejscu</li>
+                                    <li>Często niższe ceny dzięki partnerom</li>
+                                    <li>Program lojalnościowy i zniżki</li>
+                                    <li>Łatwy proces zwrotu w przypadku zmiany planów</li>
+                                </ul>
+                                <p>Aby kupić bilet, wystarczy wybrać interesującą Cię trasę i kliknąć przycisk "Kup bilet" przy wybranym połączeniu.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Text and Image Section (1:3 ratio) -->
+    <section class="text-image-section py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-3">
+                    <h2 class="section-title text-start">Dlaczego My?</h2>
+                    <p>Oferujemy najnowocześniejsze rozwiązania w planowaniu podróży, które pozwalają zaoszczędzić czas i pieniądze. Nasze algorytmy analizują setki opcji, by zapewnić Ci optymalną trasę dostosowaną do Twoich preferencji.</p>
+                    <a href="#" class="btn btn-primary mt-3">Dowiedz się więcej</a>
+                </div>
+                <div class="col-lg-9">
+                    <div class="image-container shadow-lg rounded overflow-hidden">
+                        <img src="img/wroclaw.jpg" alt="Nowoczesny transport" class="img-fluid w-100" style="height: 400px; object-fit: cover;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quote Section -->
+    <section class="quote-section py-5" style="background-color: #3b82f6;">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 text-center">
+                    <i class="fas fa-quote-left fa-3x text-white opacity-50 mb-3"></i>
+                    <blockquote class="blockquote">
+                        <p class="fs-2 fw-light text-white">"TransportPro kompletnie zmieniło sposób, w jaki planuję podróże. Oszczędzam minimum 30 minut dziennie dzięki przemyślanym trasom i aktualnym informacjom."</p>
+                        <footer class="blockquote-footer text-white-50 mt-3">
+                            <cite>Marta Kowalska, codzienny użytkownik</cite>
+                        </footer>
+                    </blockquote>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+</div>
+<!-- Bootstrap Bundle with Popper -->
+ 
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAdFQOJ8S-cBajW8arZpqBNC5dXzA2xY4U&libraries=places"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="js/scripts.js"></script>
+<script src="js/communication.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/form_control.js"></script>
+<script src="js/modal.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=&libraries=places,geometry"></script>
+
+
+
+
+<!-- Loading Splash Screen -->
+<div class="loading-splash" id="loading-splash">
+    <div class="splash-content">
+        <div class="splash-icon">
+            <i class="fas fa-route"></i>
+        </div>
+        <div class="splash-text">Obliczanie optymalnych tras</div>
+        <div class="splash-subtext">Analizujemy setki możliwych połączeń...</div>
+        <div class="loading-dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </div>
+</div>
+
+<footer class="footer bg-dark text-white py-5 mt-5">
+    <div class="container">
+        <div class="row">
+            <!-- Logo i opis -->
+            <div class="col-lg-4 mb-4 mb-lg-0">
+                <div class="footer-brand d-flex align-items-center mb-3">
+                    <i class="fas fa-route text-primary me-2 fa-2x"></i>
+                    <h3 class="m-0 text-white">TransportPro</h3>
+                </div>
+                <p class="text-light opacity-75">Optymalizujemy Twoje podróże dzięki zaawansowanym algorytmom, które analizują setki połączeń w czasie rzeczywistym.</p>
+                <div class="social-icons mt-4">
+                    <a href="#" class="text-white me-3"><i class="fab fa-facebook-f fa-lg"></i></a>
+                    <a href="#" class="text-white me-3"><i class="fab fa-twitter fa-lg"></i></a>
+                    <a href="#" class="text-white me-3"><i class="fab fa-instagram fa-lg"></i></a>
+                    <a href="#" class="text-white me-3"><i class="fab fa-linkedin-in fa-lg"></i></a>
+                </div>
+            </div>
+            
+            <!-- Szybkie linki -->
+            <div class="col-lg-2 col-md-4 col-6 mb-4 mb-md-0">
+                <h5 class="text-uppercase mb-4">Nawigacja</h5>
+                <ul class="list-unstyled">
+                    <li class="mb-2"><a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">Strona główna</a></li>
+                    <li class="mb-2"><a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">Wyszukaj trasę</a></li>
+                    <li class="mb-2"><a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">Zespół</a></li>
+                    <li class="mb-2"><a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">Statystyki</a></li>
+                    <li class="mb-2"><a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">FAQ</a></li>
+                </ul>
+            </div>
+            
+            <!-- Usługi -->
+            <div class="col-lg-2 col-md-4 col-6 mb-4 mb-md-0">
+                <h5 class="text-uppercase mb-4">Usługi</h5>
+                <ul class="list-unstyled">
+                    <li class="mb-2"><a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">Planowanie podróży</a></li>
+                    <li class="mb-2"><a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">Zakup biletów</a></li>
+                    <li class="mb-2"><a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">Powiadomienia</a></li>
+                    <li class="mb-2"><a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">Premium</a></li>
+                    <li class="mb-2"><a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">Dla firm</a></li>
+                </ul>
+            </div>
+            
+            <!-- Kontakt -->
+            <div class="col-lg-4 col-md-4 mb-4 mb-md-0">
+                <h5 class="text-uppercase mb-4">Kontakt</h5>
+                <ul class="list-unstyled">
+                    <li class="mb-3 d-flex">
+                        <i class="fas fa-map-marker-alt text-primary me-3 mt-1"></i>
+                        <span class="text-light opacity-75">ul. Transportowa 42, 00-001 Warszawa</span>
+                    </li>
+                    <li class="mb-3 d-flex">
+                        <i class="fas fa-envelope text-primary me-3 mt-1"></i>
+                        <span class="text-light opacity-75">kontakt@transportpro.pl</span>
+                    </li>
+                    <li class="mb-3 d-flex">
+                        <i class="fas fa-phone text-primary me-3 mt-1"></i>
+                        <span class="text-light opacity-75">+48 123 456 789</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Prawa autorskie i linki prawne -->
+        <div class="mt-5 pt-4 border-top border-secondary">
+            <div class="row">
+                <div class="col-md-6 text-center text-md-start">
+                    <p class="mb-md-0 text-light opacity-75">© 2025 TransportPro. Wszelkie prawa zastrzeżone.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <a href="#" class="text-light opacity-75 text-decoration-none me-3">Warunki korzystania</a>
+                    <a href="#" class="text-light opacity-75 text-decoration-none me-3">Polityka prywatności</a>
+                    <a href="#" class="text-light opacity-75 text-decoration-none">Cookies</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>

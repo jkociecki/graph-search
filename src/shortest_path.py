@@ -12,9 +12,12 @@ from typing import Dict, Callable
 import math
 
 class RoutePlaner:
+    """Class implementing route planning algorithms and heuristics."""
+
 
     def __init__(self, graph: dict[str, BusStop]):
         self.graph = graph
+
 
     def find_earliest_connection(
         self,
@@ -24,6 +27,11 @@ class RoutePlaner:
         transfer_time: int = 1, 
         criteria: str = "earliest"
     ) -> Optional['Connection']:
+        """
+        finds the earliest connection from a list of connections
+        earliest - earliest connection
+        no_change - earliest connection on the same line
+        """
         
         def is_valid_connection(connection):
             required_time = (
@@ -52,6 +60,12 @@ class RoutePlaner:
     
 
     def dijkstra(self, start_stop: str, end_stop: str, departure_time: str, transfer_time: int = 1):
+        """
+        Dijkstra's algorithm to find the shortest path between two bus stops.
+        Returns the total travel time, route as a list of connections, and the number of visited nodes and connections.
+        """
+
+
         if start_stop not in self.graph or end_stop not in self.graph:
             return None, []
 
@@ -119,9 +133,15 @@ class RoutePlaner:
         total_time = distances[end_stop] if distances[end_stop] != float('inf') else None
         return total_time, route
 
+
     def print_path(self, total_time, route):
+        """
+        Prints the path in a readable format.
+        """
         for conn in route:
             print(f"{conn.line} {conn.departure_time.strftime('%H:%M:%S')} -> {conn.arrival_time.strftime('%H:%M:%S')} {conn.end_stop}")
+
+
 
     def astar(
         self, 
@@ -132,6 +152,14 @@ class RoutePlaner:
         transfer_time: int = 1,
         connection_finder_type: str = "earliest"
     ):
+        """
+        A* algorithm to find the shortest path between two bus stops.
+        Takes a heuristic function as an argument.
+        Returns the total travel time, route as a list of connections, and the number of visited nodes and connections.
+        """
+
+
+
         if start_stop not in self.graph:
             return None, []
         if end_stop not in self.graph:
@@ -230,10 +258,16 @@ class RoutePlaner:
         
 
     def zero_heuristic(self, next_stop: str, target_stop: str, change=None, current_stop=None) -> float:
+        """
+        A heuristic that always returns 0. This is equivalent to Dijkstra's algorithm.
+        """
         return 0
     
 
     def extract_first_connection(self, stop_name: str):
+        """
+        Extracts the first connection from the graph for a given stop name.
+        """
         try:
             for _, connections in self.graph[stop_name].connections.items():
                 if connections: 
@@ -245,6 +279,11 @@ class RoutePlaner:
 
 
     def euclidean_distance_heuristic(self, next_stop: str, target_stop: str, current_stop=None, change=None) -> float:
+            """
+            Heuristic based on the Euclidean distance between the first connections of the next and target stops.
+            Heuristic is multiplied by mean travel time
+            """
+
             first_next_conn = self.extract_first_connection(next_stop)
             first_target_conn = self.extract_first_connection(target_stop)
 
@@ -261,27 +300,13 @@ class RoutePlaner:
 
 
 
-    def euclidean_distance_heuristic_2(self, next_stop: str, target_stop: str, current_stop=None, change=None) -> float:
-        first_next_conn = self.extract_first_connection(next_stop)
-        first_target_conn = self.extract_first_connection(target_stop)
-        
-        if first_next_conn is None or first_target_conn is None:
-            return 0
-        
-        dist = euclidean_distance(
-            first_next_conn.start_latitude, first_target_conn.start_latitude,
-            first_next_conn.start_longitude, first_target_conn.start_longitude
-        )
-        
-        travel_time_estimate = dist * 111 / 0.4
-        
-        if change:
-            return travel_time_estimate * 0.5
-        else:
-            return 0
-
-
     def angle_between_heuristic(self, next_stop: str, target_stop: str, current_stop=None, change=None) -> float:
+        """
+        Heuristic based on the angle between the first connections of the next and target stops.
+        Angle is calculated using the law of cosines.
+        The penalty is being scaled and is given if the angle is too small
+        """
+
         try:
             if not change:
                 return 0
@@ -314,6 +339,9 @@ class RoutePlaner:
         current_stop: str = None, 
         change: bool = False
         ) -> float:
+        """
+        Calculates the distance as the actual distance on the map between the first connections of the next and target stops.
+        """
 
         first_next_conn = self.extract_first_connection(next_stop)
         first_target_conn = self.extract_first_connection(target_stop)
@@ -330,6 +358,8 @@ class RoutePlaner:
 
         return base_distance + transfer_penalty
         
+
+
     def astar_changes(
         self, 
         start_stop: str, 
@@ -337,6 +367,12 @@ class RoutePlaner:
         departure_time: str, 
         transfer_time: int = 1,
         ):
+        """
+        A* algorith modification to tract either the number of changes or the travel time.
+        Can be considered as a algorithm to find the 'convenient' path.
+        Priority queue is modifed to take into account the number of changes and the travel time.
+        The number of changes is multipled by the penalty factor and added to the travel time.
+        """
 
         start_time = self.convert_time(departure_time)
 
@@ -438,6 +474,14 @@ class RoutePlaner:
             transfer_time: int = 1,
             ):
 
+            """
+            A* algorithm to find the path with the minimum number of transfers.
+            Focuses strictly on the number of transfers, so the travel time might
+            be far from the optimal as it is not taken into account.
+            The algorithm modifes an closed set, so the specific stop and line is already visited
+            it is not visited again. It also modfies the way of searching through the connections 
+            in the visited nodes to minimize the number of transfers.
+            """
 
 
             start_time = self.convert_time(departure_time)

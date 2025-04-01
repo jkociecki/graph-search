@@ -6,11 +6,16 @@ import pickle
 
 
 class TSaSolver:
+    """
+    Class to solve the Traveling Salesman Problem using Tabu Search.
+    """
+
 
     def __init__(self, graph):
         self.graph = graph
         self.route_solver = RoutePlaner(graph)
             
+
     def extract_first_connection(self, stop_name: str):
         try:
             for next_stop, connections in self.graph[stop_name].connections.items():
@@ -20,7 +25,11 @@ class TSaSolver:
             pass
         return None
 
+
     def initial_solution_nn(self, start, stops):
+        """
+        Generate an initial solution using the nearest neighbor heuristic.
+        """
         
         def calculate_distance(stop1, stop2):
             c1 = self.extract_first_connection(stop1)
@@ -45,7 +54,13 @@ class TSaSolver:
         
         return path, coordinates
 
+
     def evaluate_solution(self, path, departure_time):
+        """
+        Evaluate the total time of the path and return the total time and route.
+        Evaluation is done either by time
+        """
+
         total_time = 0
         total_route = []
         current_time = datetime.strptime(departure_time, '%H:%M:%S')
@@ -62,7 +77,13 @@ class TSaSolver:
         
         return total_time, total_route
     
+
     def calculate_number_of_changes(self, path):
+        """
+        Calculate the number of changes in the path.
+        A change is defined as a switch between different lines.
+        """
+
         total_changes = 0
         current_line = None
 
@@ -73,7 +94,12 @@ class TSaSolver:
 
         return total_changes - 1 if total_changes > 0 else 0
     
+
     def evaluate_solution_based_on_changes(self, path, departure_time):
+        """
+        Evaluate the total number of changes in the path and return the total number of changes and route.
+        Evaluation is done based on the number of changes.
+        """
         total_changes = 0
         total_route = []
         current_time = datetime.strptime(departure_time, '%H:%M:%S')
@@ -91,8 +117,13 @@ class TSaSolver:
 
         return total_changes, total_route
 
-            
+
+
     def generate_neighbourhood(self, path):
+        """
+        Generate a neighborhood of the current solution by swapping elements in the path.
+        """
+
         neighborhood = set()
         mid_index = ceil(len(path) / 2)
         lower_half = path[:mid_index]
@@ -108,13 +139,21 @@ class TSaSolver:
 
 
     def tabu_search(self, start, stops, departure_time, minimize="time", max_iterations=30, inner_iterations=10):
+        """
+        Perform the Tabu Search algorithm to find the best solution.
+        The algorithm iteratively explores the neighborhood of the current solution and updates the best solution found.
+        Uses dynamic tabu list to avoid cycling back to previously visited solutions, 
+        an adaptive sampling strategy to balance exploration and exploitation, 
+        aspiration criteria to allow for the acceptance of solutions that are worse than the current best solution,
+        and a random perturbation strategy to escape local optima.
+        """
+        
 
         current_solution, _ = self.initial_solution_nn(start, stops)
         best_solution = current_solution.copy()
         
         tabu_list = {}
         
-        # Dynamiczny rozmiar tablicy tabu zależny od rozmiaru problemu
         tabu_size = len(stops) * 2
         
         if minimize == "time":
@@ -125,15 +164,12 @@ class TSaSolver:
         sampling_rate = 1.0
         
         for k in range(max_iterations):
-            # Adaptacja strategii próbkowania w zależności od postępu
             if k > max_iterations // 2:
-                # W drugiej połowie algorytmu intensyfikujemy przeszukiwanie
                 sampling_rate = max(0.3, 1.0 - (k / max_iterations))
             
             for i in range(inner_iterations):
                 full_neighbourhood = self.generate_neighbourhood(current_solution)
                 
-                # Adaptacyjne próbkowanie sąsiedztwa
                 import random
                 sample_size = max(1, int(len(full_neighbourhood) * sampling_rate))
                 neighbourhood = random.sample(full_neighbourhood, min(sample_size, len(full_neighbourhood)))
@@ -142,13 +178,11 @@ class TSaSolver:
                 best_neighbour_cost = float('inf')
                 best_neighbour_route = []
                 
-                # Aktualizacja listy tabu - usuwanie wygasłych zakazów
                 current_iteration = k * inner_iterations + i
                 expired_moves = [move for move, expiry in tabu_list.items() if expiry <= current_iteration]
                 for move in expired_moves:
                     del tabu_list[move]
                 
-                # Przeszukiwanie sąsiedztwa
                 for neighbour in neighbourhood:
                     neighbour_tuple = tuple(neighbour)
                     
@@ -159,7 +193,6 @@ class TSaSolver:
                     else:
                         total_cost, total_route = self.evaluate_solution_based_on_changes(neighbour, departure_time)
                     
-                    # Mechanizm aspiracji - akceptujemy rozwiązanie z tabu, jeśli jest lepsze niż globalnie najlepsze
                     if is_tabu and total_cost < best_cost:
                         is_tabu = False
                     
@@ -175,7 +208,6 @@ class TSaSolver:
                 tabu_list[tuple(best_neighbour)] = current_iteration + tabu_tenure
                 
                 if len(tabu_list) > tabu_size:
-                    # Usuń najstarszy zakaz
                     oldest_move = min(tabu_list, key=tabu_list.get)
                     del tabu_list[oldest_move]
                 
@@ -191,7 +223,6 @@ class TSaSolver:
                 current_solution = best_neighbour.copy()
             
             if k % 10 == 9:
-                # Losowo zamieniamy pozycje w bieżącym rozwiązaniu
                 solution_copy = current_solution.copy()
                 indices = list(range(1, len(solution_copy) - 1))
                 if len(indices) >= 2:
@@ -201,23 +232,3 @@ class TSaSolver:
         
         return best_solution, best_cost, best_route
     
-
-if __name__ == "__main__":
-    with open("src/mpk_graph.pickle", "rb") as f:
-        graph = pickle.load(f)
-    
-    tsa_solver = TSaSolver(graph)
-
-    start_station = "Stalowa"
-    #start_station= "Jagodzińska"
-    #stations_string = "PL. GRUNWALDZKI;KRZYKI"
-    #stations_string = "most Grunwaldzki;Kochanowskiego;Wiśniowa;PL. JANA PAWŁA II"
-    #stations_string = "GRABISZYŃSKA (Cmentarz);ZOO;Urząd Wojewódzki (Muzeum Narodowe);most Grunwaldzki;Kochanowskiego;Wiśniowa;PL. JANA PAWŁA II"
-    #stations_string = "GRABISZYŃSKA (Cmentarz);Fiołkowa;FAT;Hutmen;Bzowa (Centrum Historii Zajezdnia)"
-    stations_string = "Kliniki - Politechnika Wrocławska;BISKUPIN;Stalowa;Krucza;rondo Św. Ojca Pio;most Grunwaldzki;SĘPOLNO"
-    #stations_string = "Tarczyński Arena (Lotnicza);Niedźwiedzia;Bujwida;PARK POŁUDNIOWY;Na Niskich Łąkach;BISKUPIN"
-
-    best_solution, best_cost, best_route = tsa_solver.tabu_search(start=start_station, 
-                                                                stops=stations_string.split(';'), 
-                                                                departure_time="12:00:00")
-    display_route_statistics(best_solution, best_cost, best_route, start_stop_str=start_station)
