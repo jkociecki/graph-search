@@ -1,4 +1,4 @@
-from data_structures import BusStop, Connection
+from src.data_structures import BusStop, Connection
 from tabulate import tabulate 
 import math
 import pandas as pd

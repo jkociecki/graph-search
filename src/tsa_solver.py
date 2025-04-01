@@ -1,7 +1,7 @@
-from shortest_path import *
+from src.shortest_path import *
 from math import ceil
 from datetime import datetime, timedelta
-from utils import euclidean_distance, extract_first_connection, display_route_statistics
+from src.utils import euclidean_distance, extract_first_connection, display_route_statistics
 import pickle
 
 
@@ -54,7 +54,7 @@ class TSaSolver:
             connection_time, route, _, _ = self.route_solver.astar(path[i], 
                                                              path[i+1], 
                                                              current_time.strftime('%H:%M:%S'),
-                                                             heuristic_function=self.route_solver.angle_between_heuristic)
+                                                             heuristic_function=self.route_solver.zero_heuristic)
 
             total_time += connection_time
             total_route += route
